@@ -128,10 +128,11 @@ contract LP is Ownable {
 
     function doAttackInDuel(uint256 _indexRoom) public {
 
+        
+
                 duelInfo storage currentDuel = duels[_indexRoom];
 
         require(isPlayerInDuelAtIndexRoom(_indexRoom), "you're not in room");               
-
         // проверить что юзер находится в этой игре
         // рассчитать урон за удар
         // отредактировать механику рандома
@@ -158,10 +159,12 @@ contract LP is Ownable {
         if (currentDuel.players[0] == msg.sender) {
             
             currentDuel.totalDamagePlayer0 += totalDamage; // добавляем игроку 0
-        
+            require(currentDuel.totalDamagePlayer0 == 0, "you're already attacked in duel");
         
         } else {
             currentDuel.totalDamagePlayer1 += totalDamage; // если он не первый то игроку 1
+                        require(currentDuel.totalDamagePlayer0 == 0, "you're already attacked in duel");
+
         }
 
 
@@ -334,6 +337,8 @@ contract LP is Ownable {
     }
 
         event BossDefeated(address indexed  player, uint256 indexed  bossLevel, uint256[] damages);
+        
+
 
     function fightWithBoss(uint256 _bossLevel) public  {
 
@@ -366,6 +371,7 @@ contract LP is Ownable {
           
                     // занулить его энергию?
                     players[msg.sender].energyBalance -= bosses[_bossLevel].attackDamage *3;
+
         }
 
     }
