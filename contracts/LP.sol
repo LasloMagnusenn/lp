@@ -315,6 +315,8 @@ contract LP is Ownable {
     function claimDailyEnergy() public {
         // проверяем что прошел более чем один день с момента прошлого клейма энергии
 
+        // проверяем что игрок играет
+        require(players[msg.sender].energyFactor >= 1, "you're out of game");
         require(
             block.timestamp >=
                 players[msg.sender].lastTimestampClaimedEnergy + 1 days,
