@@ -4,6 +4,7 @@ pragma solidity ^0.8.17;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./IWomanSeekersNewDawn.sol";
 import "./IERC20.sol";
+import "./console.sol";
 
 contract LP is Ownable {
     IWomanSeekersNewDawn Collection;
@@ -317,13 +318,19 @@ contract LP is Ownable {
         require(
             block.timestamp >=
                 players[msg.sender].lastTimestampClaimedEnergy + 1 days,
-            "try later"
-        );
+            "try later"        );
+
+        console.log("//////");
+            console.log( defEnergyAccrual * players[msg.sender].energyFactor);
+                        console.log( defEnergyAccrual );
+                                                console.log(      players[msg.sender].energyFactor );
+
+                      console.log("//////"); 
+
 
         players[msg.sender].lastTimestampClaimedEnergy = block.timestamp;
         players[msg.sender].energyBalance +=
-            defEnergyAccrual *
-            players[msg.sender].energyFactor;
+            defEnergyAccrual * players[msg.sender].energyFactor;
     }
 
     function buyEnergyForTokens(uint256 _amountEnergy) public {

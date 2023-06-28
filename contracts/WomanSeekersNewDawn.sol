@@ -25,7 +25,7 @@ contract WomanSeekersNewDawn is ERC721AQueryable,  DefaultOperatorFilterer,  Own
   uint256 public maxSupply;
   uint256 public maxMintAmountPerTx;
 
-  bool public paused = true;
+  bool public paused = false;
   bool public whitelistMintEnabled = true;
   bool public revealed = false;
 
