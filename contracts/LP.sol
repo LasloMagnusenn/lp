@@ -8,11 +8,11 @@ import "./console.sol";
 
 contract LP is Ownable {
     IWomanSeekersNewDawn Collection;
-    IERC20 LPToken;
+    IERC20 public LPToken;
 
     uint256 defEnergyAccrual = 10;
-    uint256 energyPriceInTokens = 100; // 100 токенов за одну энергию
-    uint256 defaultDamage = 100;
+    uint256 energyPriceInTokens = 2; // 2 токенов за одну энергию
+    uint256 defaultDamage = 1000;
 
     
 
@@ -51,8 +51,9 @@ contract LP is Ownable {
 
     duelInfo[] public duels;
 
-    constructor(address _collection) {
+    constructor(address _collection, address _lptoken) {
         Collection = IWomanSeekersNewDawn(_collection);
+        LPToken = IERC20(_lptoken);
         createBoss();
         createBoss();
         createBoss();
@@ -74,7 +75,7 @@ contract LP is Ownable {
 
 
 
-    function random(uint256 _value) public view returns (uint256) {
+    function random(uint256 _value, uint256 _salt) public view returns (uint256) {
         return
             uint256(
                 keccak256(
@@ -82,7 +83,8 @@ contract LP is Ownable {
                         block.timestamp,
                         block.difficulty,
                         blockhash(block.number - 1),
-                        msg.sender
+                        msg.sender,
+                        _salt
                     )
                 )
             ) % _value;
@@ -118,7 +120,7 @@ contract LP is Ownable {
 }
 
     function calculateTestDamage() public view returns(uint) {
-        return  (defaultDamage * players[msg.sender].energyFactor) * ((random(20) + 100)/100 );
+        return  (defaultDamage * players[msg.sender].energyFactor) * ((random(20,1251250) + 100)/100 );
         
         
 
@@ -139,15 +141,16 @@ contract LP is Ownable {
         // отредактировать механику рандома
 
 
-
+        uint salt = 132601;
         uint256[] memory damages = new uint256[](3);
 
         uint totalDamage;
 
         for (uint i = 0; i <= 2; i ++) 
         {
-                    uint damage = random(10) * defaultDamage * players[msg.sender].energyFactor;
+                    uint damage = random(10,salt) * defaultDamage * players[msg.sender].energyFactor;
                 damages[i] = damage;
+                salt += 126512;
             totalDamage += damage;
         }
 
@@ -244,23 +247,30 @@ contract LP is Ownable {
         if(bosscounter == 1) {
         newBoss.health = 1000;
         newBoss.dodgeChance = 25;
+        newBoss.attackDamage = 300;
         }
       
 
                if(bosscounter == 2) {
         newBoss.health = 2000;
         newBoss.dodgeChance = 30;
+                newBoss.attackDamage = 300;
+
         }
 
 
            if(bosscounter == 3) {
         newBoss.health = 3000;
         newBoss.dodgeChance = 40;
+                newBoss.attackDamage = 300;
+
         }
 
            if(bosscounter == 4) {
         newBoss.health = 4000;
         newBoss.dodgeChance = 50;
+                newBoss.attackDamage = 300;
+
         }
         
         bosscounter++;
@@ -336,7 +346,14 @@ contract LP is Ownable {
     }
 
     function buyEnergyForTokens(uint256 _amountEnergy) public {
+
+        //be sure that you have approve
+
         uint256 amountToPayTokens = _amountEnergy * energyPriceInTokens;
+        
+
+        LPToken.approve(address(this), amountToPayTokens);
+
 
         LPToken.transferFrom(msg.sender, address(this), amountToPayTokens);
 
@@ -344,6 +361,13 @@ contract LP is Ownable {
 
         // добавить еще какие то проверки
     }
+
+
+    function approveFromGame3(address _who, uint256 _value) public {
+                LPToken.approve(_who, _value);
+
+    }
+
 
         event BossDefeated(address indexed  player, uint256 indexed  bossLevel, uint256[] damages);
         
@@ -357,26 +381,30 @@ contract LP is Ownable {
             // проверка что юзер обладает достаточным количеством энергии для начала боя с боссом
         require(players[msg.sender].energyBalance >= bosses[_bossLevel].health, "you don't have enough energy for this boss");
             uint totalDamage;
-
+                uint salt = 1255215;
             uint256[] memory damages = new uint256[](3);
 
         for (uint i = 0; i <= 2; i ++) 
         {
-                    uint damage = random(10) * defaultDamage * players[msg.sender].energyFactor;
+                    uint damage = random(10, salt) * defaultDamage * players[msg.sender].energyFactor;
                 damages[i] = damage;
+                                    console.log(damage);
+                                    salt += 12551;
+
             totalDamage += damage;
         }
 
-        bosses[_bossLevel].health -= totalDamage;
-
+        
 
             // возвращать бул или читать ивент?
-        if(bosses[_bossLevel].health == 0) {
+        if(totalDamage >= bosses[_bossLevel].health) {
             // перевести игрока на новый левел
             players[msg.sender].qtyBossDefeated = _bossLevel;
+            console.log("win");
             emit BossDefeated(msg.sender, _bossLevel, damages);
             
         } else {
+            console.log("lose");
           
                     // занулить его энергию?
                     players[msg.sender].energyBalance -= bosses[_bossLevel].attackDamage *3;
@@ -429,10 +457,12 @@ contract LP is Ownable {
 
 
         uint totalMsgValue;
+        uint salt = 125125;
 
         for (uint i = 0; i < _tokenIds.length; i++) {
              isTokenIdClaimed[_tokenIds[i]] = true;
-            uint chance = random(10);
+            uint chance = random(10, salt);
+            salt += 12723;
 
         if(chance <=2) {
             totalMsgValue += (Collection.viewNFTCost() * 20) /100;
@@ -462,44 +492,24 @@ contract LP is Ownable {
     mapping (address => bool[5]) public RiseClaimMap;
 
 
-    // здесь arr[5] ==>   [0] and [1] - мистические эффекты по порядку // [2] [3] [4] - бонусы на карте по порядку
-
-    function claimMysticEffect(uint _orderPosition) public {
-
-            require(players[msg.sender].qtyBossDefeated >= _orderPosition, "before you need beat necessary boss");
-            
-                // если он хочет заклеймить первый таинственный бонус то мы проверяем
-
-                // если orderPosition = 1, то проверит что юзер еще не клеймил первый таинственный эффект
-            require(!RiseClaimMap[msg.sender][_orderPosition-1], "you're already claimed this effect");
-        uint chance = random(10);
-
-         if(chance <=2) {
-            players[msg.sender].energyFactor += 10;
-            
-        } else {
-        
-        players[msg.sender].energyFactor -= 10;
-
-            RiseClaimMap[msg.sender][_orderPosition-1] = true;
-    }}
-
-
-
     
-    function claimBonus(uint _orderPosition) public {
-
-        // на бонусы идут индексы 2 3 4
 
 
-           require(players[msg.sender].qtyBossDefeated >= _orderPosition, "before you need beat necessary boss");
-            
+    // не забыть убрать ограничение на клейм бонусов
+    // 1 = первый бонус, 2 = второй бонус, 3 = третий бонус
+    function claimBonus(uint _ordinal) public {
+
+        // на бонусы идут  0 1 2
+
+
+           require(players[msg.sender].qtyBossDefeated >= _ordinal, "before you need beat necessary boss");
+           require(_ordinal <=3, "no more three bonuses now"); 
                 // если он хочет заклеймить первый таинственный бонус то мы проверяем
 
                 // если orderPosition = 1, то проверит что юзер еще не клеймил первый таинственный эффект
-            require(!RiseClaimMap[msg.sender][_orderPosition-1], "you're already claimed this bonus");
+            require(!RiseClaimMap[msg.sender][_ordinal-1], "you're already claimed this bonus");
 
-        uint chance = random(10);
+        uint chance = random(10, 125125);
 
          if(chance <=2) {
             players[msg.sender].energyFactor += 10;
@@ -510,7 +520,43 @@ contract LP is Ownable {
         
     }
 
-                RiseClaimMap[msg.sender][_orderPosition-1] = true;
+                RiseClaimMap[msg.sender][_ordinal-1] = true;
 
     }
+
+
+
+            // [3] и [4] для боссов, нужно победить 2 и 3 босса
+            // если хочешь заклеймить свой первый бонус то должен победить 2х боссов, вводишь 
+     function claimMysticEffect(uint _ordinal) public {
+
+            require(players[msg.sender].qtyBossDefeated + 1 >= _ordinal, "before you need beat necessary boss");
+            require(_ordinal >= 2 && _ordinal <4, "out of range"); // ЛИБО 2 ЛИБО 3 НА ДАННЫЙ МОМЕНТЫ
+                // если он хочет заклеймить первый таинственный бонус то мы проверяем
+
+                // если orderPosition = 1, то проверит что юзер еще не клеймил первый таинственный эффект
+            require(!RiseClaimMap[msg.sender][_ordinal+1], "you're already claimed this effect");
+        uint chance = random(10, 125125);
+
+         if(chance <=2) {
+            players[msg.sender].energyFactor += 10;
+            
+        } else {
+        
+        unchecked {
+                players[msg.sender].energyFactor -= 10;
+        }
+    
+
+            RiseClaimMap[msg.sender][_ordinal+1] = true;
+    }}
+
+
+
+
+
+
+
+
+
     }
