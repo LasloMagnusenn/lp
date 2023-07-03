@@ -27,6 +27,7 @@ contract LP is Ownable {
         uint256 amountTokensInGame; // количество токенов которыми играет юзер, учитывается только в конце
         uint256 lastTimestampClaimedEnergy;
         uint256[] playingTokenIds; // токен идсы которыми играет юзер
+        bool isPlaying;
     }
     //  нужно ли добавить массив tokenId которыми он играет?
 
@@ -58,6 +59,9 @@ contract LP is Ownable {
         createBoss();
         createBoss();
         createBoss();
+        createNewDuelRoom();
+        createNewDuelRoom();
+        createNewDuelRoom();
 
     }
 
@@ -65,8 +69,7 @@ contract LP is Ownable {
 
                 address[2] memory emptyPlayers;
 
-        duels.push(duelInfo(
-                0, emptyPlayers, 0,0
+        duels.push(duelInfo(0, emptyPlayers, 0,0
 
 
 
@@ -126,16 +129,21 @@ contract LP is Ownable {
 
     }
 
+        event duelFinished(address indexed  winner, uint256 _indexRoom, uint256[] damages, bool _wasEnergyFactorIncreased);
 
         event duelAttackLogs(address indexed  player, uint256 _indexRoom, uint256[] damages);
 
+
+        function viewDuelInfo(uint256 _indexRoom) public view returns(duelInfo memory) {
+            return duels[_indexRoom];
+        }
+
     function doAttackInDuel(uint256 _indexRoom) public {
 
-        
-
-                duelInfo storage currentDuel = duels[_indexRoom];
+        duelInfo storage currentDuel = duels[_indexRoom];
 
         require(isPlayerInDuelAtIndexRoom(_indexRoom), "you're not in room");               
+        
         // проверить что юзер находится в этой игре
         // рассчитать урон за удар
         // отредактировать механику рандома
@@ -146,6 +154,8 @@ contract LP is Ownable {
 
         uint totalDamage;
 
+
+        // калькуляция тотал дамага
         for (uint i = 0; i <= 2; i ++) 
         {
                     uint damage = random(10,salt) * defaultDamage * players[msg.sender].energyFactor;
@@ -159,59 +169,87 @@ contract LP is Ownable {
 
 
 
-
+        // плюсуем тоталДамаг нужному игроку
         if (currentDuel.players[0] == msg.sender) {
-            
-            currentDuel.totalDamagePlayer0 += totalDamage; // добавляем игроку 0
+
             require(currentDuel.totalDamagePlayer0 == 0, "you're already attacked in duel");
+
+            currentDuel.totalDamagePlayer0 += totalDamage; // добавляем игроку 0
+                    emit duelAttackLogs(msg.sender, _indexRoom, damages);
+
         
         } else {
+            require(currentDuel.totalDamagePlayer1 == 0, "you're already attacked in duel");
+
             currentDuel.totalDamagePlayer1 += totalDamage; // если он не первый то игроку 1
-                        require(currentDuel.totalDamagePlayer0 == 0, "you're already attacked in duel");
+                    emit duelAttackLogs(msg.sender, _indexRoom, damages);
+
 
         }
 
 
-        emit duelAttackLogs(msg.sender, _indexRoom, damages);
+
+            // если оба тоталДамага существуют то можно сделать калькуляцию победителя
+        if(currentDuel.totalDamagePlayer0 != 0 && currentDuel.totalDamagePlayer1 != 0) {
+
+                    //
+                    uint salt1 = 2151256;
+                  uint chance = random(100, salt1);
+            salt += 12723;
+
+        if(chance <=5) {
+          // повышаем мультипликатор
+            
+        }
+                        bool wasEnergyFactorIncreased;
+
+            // player0 нанес больший дамаг
+            if(currentDuel.totalDamagePlayer0 > currentDuel.totalDamagePlayer1) {
+                            // перевод ставки токенов
+                            LPToken.transferFrom(address(this), currentDuel.players[0], duelPrice);
+
+                            // возможное увеличение мультипликатора
+                             if(chance <=5) {
+                                 
+                                 players[currentDuel.players[0]].energyFactor += 1;
+                                 wasEnergyFactorIncreased = true;
+                                
+                            }
+
+                            // порождение ивента + включить был ли увеличен мультипликатор игрока
+
+                            emit duelFinished(currentDuel.players[0], _indexRoom, damages, wasEnergyFactorIncreased);
+
+                
+            } else {
+
+                // перевод ставки токенов
+                            LPToken.transferFrom(address(this), currentDuel.players[1], duelPrice);
+
+                            // возможное увеличение мультипликатора
+                             if(chance <=5) {
+                                 players[currentDuel.players[0]].energyFactor += 1;
+                                                                  wasEnergyFactorIncreased = true;
+
+                            }
+                             emit duelFinished(currentDuel.players[1], _indexRoom, damages, wasEnergyFactorIncreased);
+
+
+                            // порождение ивента + включить был ли увеличен мультипликатор игрока
+
+            }
+
+
+            // удаление записи игры
+
+            delete duels[_indexRoom];
+
+        }
+
+
        
 
   
-    }
-
-
-    uint256 public duelPrice = 1000;
-
-    function findAvailableDuel() public view returns(uint256) {
-
-        for (uint i = 0; i < duels.length; i++) {
-         
-        if(duels[i].playersNow !=2) {
-            return i;
-        }
-
-        }
-
-        revert("could not find available duel room");
-
-
-    }
-
-    function enterInDuel() public {
-
-        duelInfo storage currentDuel = duels[findAvailableDuel()];
-        
-
-        // если мы получили currentDuel значит дуэль рум уже точно может принять игрока
-
-
-            currentDuel.players[0] = msg.sender;
-            LPToken.transferFrom(msg.sender, address(this), duelPrice );
-
-            currentDuel.playersNow++;
-        
-
-        // перевод ставки токенов в контракт чекнуть
-
     }
 
     function claimDuel() public view returns (uint256) {
@@ -237,6 +275,51 @@ contract LP is Ownable {
         return 1;
     }
 
+
+
+    uint256 public duelPrice = 1000;
+
+    function findAvailableDuel() public view returns(uint256) {
+
+        for (uint i = 0; i < duels.length; i++) {
+         
+        if(duels[i].playersNow !=2) {
+            return i;
+        }
+
+        }
+
+        revert("could not find available duel room");
+
+
+    }
+
+        // findAvailableDuel возвращает i комнаты куда можно запушить хотя бы одного игрока
+        //ЗАПИСЫВАЕТ ЛЮБОГО ИГРОКА НА НУЛЕВОЙ ИНДЕКС PLAYERS
+    function enterInDuel() public {
+
+        duelInfo storage currentDuel = duels[findAvailableDuel()];
+        require(currentDuel.players[0] != msg.sender || currentDuel.players[1] != msg.sender, "you're already in this duel");
+
+        // если мы получили currentDuel значит дуэль рум уже точно может принять игрока
+
+            if(currentDuel.players[0] == address(0)) {
+            currentDuel.players[0] = msg.sender;
+
+            } else {
+            currentDuel.players[1] = msg.sender;
+
+            }
+
+
+            // трансфер цены дуэли от игрока на адрес контракта в lpToken'ах
+            LPToken.transferFrom(msg.sender, address(this), duelPrice );
+
+            currentDuel.playersNow++;
+
+    }
+
+    
     uint bosscounter = 1;
 
     function createBoss() internal {
@@ -294,6 +377,8 @@ contract LP is Ownable {
         Newplayer.amountTokensInGame = 0;
         Newplayer.lastTimestampClaimedEnergy = 0;
         Newplayer.amountTokensInGame = _tokenIds.length;
+        Newplayer.isPlaying = true;
+
 
         // Добавляем токены, которыми играет игрок
         for (uint256 i = 0; i < _tokenIds.length; i++) {
@@ -306,6 +391,11 @@ contract LP is Ownable {
     function leaveGame() public {
         //разморозить токен идс и удалить ячейку маппинга
 
+        // сделать проверку на то что юзер находится в игре
+
+        require(players[msg.sender].isPlaying == true, "you're out of game");
+
+
         for (
             uint256 i = 0;
             i < players[msg.sender].playingTokenIds.length;
@@ -317,6 +407,7 @@ contract LP is Ownable {
             );
             // возможно как то еще придется маркировать токен
         }
+
 
         delete players[msg.sender];
     }
@@ -370,12 +461,14 @@ contract LP is Ownable {
 
 
         event BossDefeated(address indexed  player, uint256 indexed  bossLevel, uint256[] damages);
+                event BossLost(address indexed  player, uint256 indexed  bossLevel, uint256[] damages);
+
         
 
 
     function fightWithBoss(uint256 _bossLevel) public  {
 
-                require(players[msg.sender].qtyBossDefeated < _bossLevel, "you're already beaten this boss");
+                require(_bossLevel -1 == players[msg.sender].qtyBossDefeated , "not corresponding boss for you");
 
 
             // проверка что юзер обладает достаточным количеством энергии для начала боя с боссом
@@ -407,8 +500,11 @@ contract LP is Ownable {
             console.log("lose");
           
                     // занулить его энергию?
-                    players[msg.sender].energyBalance -= bosses[_bossLevel].attackDamage *3;
+                    unchecked{
+                players[msg.sender].energyBalance -= bosses[_bossLevel].attackDamage *3;
 
+                    }
+            emit BossLost(msg.sender, _bossLevel, damages);
         }
 
     }
