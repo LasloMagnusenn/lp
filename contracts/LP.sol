@@ -12,7 +12,22 @@ contract LP is Ownable {
 
     uint256 defEnergyAccrual = 10;
     uint256 energyPriceInTokens = 2; // 2 токенов за одну энергию
-    uint256 defaultDamage = 1000;
+    uint256 defaultDamage = 10000;
+
+    
+        event duelFinished(address indexed  winner, uint256 _indexRoom, uint256[] damages, bool _wasEnergyFactorIncreased);
+
+        event duelAttackLogs(address indexed  player, uint256 _indexRoom, uint256[] damages);
+
+
+        event DiscountReceived(address _player);
+        event LPTokensGiven(address _player, uint256 _amount);
+
+        
+        event BossDefeated(address indexed  player, uint256 indexed  bossLevel, uint256[] damages);
+        event BossLost(address indexed  player, uint256 indexed  bossLevel, uint256[] damages);
+
+        
 
     
 
@@ -129,10 +144,6 @@ contract LP is Ownable {
 
     }
 
-        event duelFinished(address indexed  winner, uint256 _indexRoom, uint256[] damages, bool _wasEnergyFactorIncreased);
-
-        event duelAttackLogs(address indexed  player, uint256 _indexRoom, uint256[] damages);
-
 
         function viewDuelInfo(uint256 _indexRoom) public view returns(duelInfo memory) {
             return duels[_indexRoom];
@@ -206,7 +217,7 @@ contract LP is Ownable {
             // player0 нанес больший дамаг
             if(currentDuel.totalDamagePlayer0 > currentDuel.totalDamagePlayer1) {
                             // перевод ставки токенов
-                            LPToken.transferFrom(address(this), currentDuel.players[0], duelPrice);
+                            LPToken.transfer(currentDuel.players[0], duelPrice * 2);
 
                             // возможное увеличение мультипликатора
                              if(chance <=5) {
@@ -224,7 +235,7 @@ contract LP is Ownable {
             } else {
 
                 // перевод ставки токенов
-                            LPToken.transferFrom(address(this), currentDuel.players[1], duelPrice);
+                            LPToken.transfer(currentDuel.players[1], duelPrice * 2 );
 
                             // возможное увеличение мультипликатора
                              if(chance <=5) {
@@ -252,28 +263,29 @@ contract LP is Ownable {
   
     }
 
-    function claimDuel() public view returns (uint256) {
-        // кто должен клеймить? ( тот кто бил последним)
 
-                duelInfo storage currentDuel = duels[findAvailableDuel()];
+    // function claimDuel() public view returns (uint256) {
+    //     // кто должен клеймить? ( тот кто бил последним)
+
+    //             duelInfo storage currentDuel = duels[findAvailableDuel()];
 
 
-        uint256 winnerIndex;
-        if (currentDuel.totalDamagePlayer0 > currentDuel.totalDamagePlayer1) {
-            winnerIndex = 0;
-        } else {
-            winnerIndex = 1;
-        }
+    //     uint256 winnerIndex;
+    //     if (currentDuel.totalDamagePlayer0 > currentDuel.totalDamagePlayer1) {
+    //         winnerIndex = 0;
+    //     } else {
+    //         winnerIndex = 1;
+    //     }
 
         
-    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        // функция рандома дает индекс, если индекс равен 5% то
-        //повышаем мультипликатор энергии winnerIndex
+    // //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    //     // функция рандома дает индекс, если индекс равен 5% то
+    //     //повышаем мультипликатор энергии winnerIndex
 
-        // ставку токенов переводим победителю
+    //     // ставку токенов переводим победителю
 
-        return 1;
-    }
+    //     return 1;
+    // }
 
 
 
@@ -299,7 +311,11 @@ contract LP is Ownable {
     function enterInDuel() public {
 
         duelInfo storage currentDuel = duels[findAvailableDuel()];
-        require(currentDuel.players[0] != msg.sender || currentDuel.players[1] != msg.sender, "you're already in this duel");
+        console.log(findAvailableDuel());
+
+        require(currentDuel.players[0] != msg.sender && currentDuel.players[1] != msg.sender, "you're already in this duel");
+     
+
 
         // если мы получили currentDuel значит дуэль рум уже точно может принять игрока
 
@@ -460,11 +476,6 @@ contract LP is Ownable {
     }
 
 
-        event BossDefeated(address indexed  player, uint256 indexed  bossLevel, uint256[] damages);
-                event BossLost(address indexed  player, uint256 indexed  bossLevel, uint256[] damages);
-
-        
-
 
     function fightWithBoss(uint256 _bossLevel) public  {
 
@@ -479,7 +490,7 @@ contract LP is Ownable {
 
         for (uint i = 0; i <= 2; i ++) 
         {
-                    uint damage = random(10, salt) * defaultDamage * players[msg.sender].energyFactor;
+                    uint damage = (((random(10, salt) * defaultDamage * players[msg.sender].energyFactor) * bosses[_bossLevel].dodgeChance)/100);
                 damages[i] = damage;
                                     console.log(damage);
                                     salt += 12551;
@@ -539,46 +550,65 @@ contract LP is Ownable {
 
     }
 
+
+
     // даем либо токены либо скидку на нфт
-    function getFinalTreasures(uint256[] memory _tokenIds) public payable  {
+    function getFinalTreasures(uint256[] memory _tokenIds, uint _salt) public   {
         // проверить что юзер победил всех боссов
         // функция получениярандомного индекса
         // выплата токенов ли бо нфт
         //
 
         // маркировать токен как получивший выигрыш 
-        require(players[msg.sender].qtyBossDefeated == 3, "you have to defeat all bosses");
+       require(players[msg.sender].qtyBossDefeated == 4, "you have to defeat all bosses");
        require(checkOwnershipOfTokens( _tokenIds), "you're not owner of these tokenIds");
        require(!isTokensClaimedTreasures( _tokenIds), "tokens were claimed");
 
 
-        uint totalMsgValue;
-        uint salt = 125125;
 
         for (uint i = 0; i < _tokenIds.length; i++) {
              isTokenIdClaimed[_tokenIds[i]] = true;
-            uint chance = random(10, salt);
-            salt += 12723;
+            uint chance = random(10, _salt);
+            _salt += 16236;
 
         if(chance <=2) {
-            totalMsgValue += (Collection.viewNFTCost() * 20) /100;
-    
-            Collection.mintFromGame(1);
+
+            amountDiscounts[msg.sender]++;
+            emit DiscountReceived(msg.sender);
+            console.log("got discount");
+
+            
+
+          
             
         } else {
-        LPToken.transferFrom(address(this), msg.sender, 10000);
+        LPToken.transfer( msg.sender, 10000);
+
+        emit LPTokensGiven(msg.sender,  10000);
+        console.log("lpTokensGiven");
 
 
         }}
 
-         require(msg.value >= totalMsgValue, "insufficient funds");
         
     
 
     }
 
-    function testMintDirectFromGame() public {
-                    Collection.mintFromGame(1);
+    mapping(address => uint) public amountDiscounts;
+
+    function viewAmountDiscountForUser(address _player) public view returns(uint) {
+        return amountDiscounts[_player];
+ 
+    }
+
+    function MintWithDiscountFromGame(uint256 _mintAmount) public {
+
+        require(_mintAmount >= amountDiscounts[msg.sender], "not enough discounts");
+
+        
+            amountDiscounts[msg.sender] -= _mintAmount;
+                    Collection.mintFromGame(_mintAmount);
 
     }
 

@@ -87,9 +87,12 @@ contract WomanSeekersNewDawn is ERC721AQueryable,  DefaultOperatorFilterer,  Own
     _safeMint(_msgSender(), _mintAmount);
   }
 
-  function mintFromGame(uint256 _mintAmount) public mintCompliance(_mintAmount) {
+  function mintFromGame(uint256 _mintAmount) public payable mintCompliance(_mintAmount) {
 
     // добавить какие нибудь проверки
+
+    require(msg.value == ((cost * 80) /100) * _mintAmount, "incorrect msg value");
+
 
         _safeMint(tx.origin, _mintAmount);
 

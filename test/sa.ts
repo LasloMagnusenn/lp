@@ -1,10 +1,10 @@
 import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
-import { expect } from "chai";
+import { assert, expect } from "chai";
 import { ethers } from "hardhat"
 import { LP, LP__factory, WomanSeekersNewDawn, WomanSeekersNewDawn__factory, LPToken, LPToken__factory } from "../typechain-types";
 describe("deploy contracts", function() {
   async function deploy() {
-    const [ acc1, acc2 ] = await ethers.getSigners();
+    const [ acc1, acc2, acc3 ] = await ethers.getSigners();
 
     
     const LPTokenFactory = await ethers.getContractFactory("LPToken");
@@ -24,40 +24,46 @@ describe("deploy contracts", function() {
 
 
 
-    return { lp, coll, lptoken, acc1, acc2 }
+    return { lp, coll, lptoken, acc1, acc2, acc3 }
   }
 
   // ПОЗЖЕ НАВЕСИТЬ НА ВСЕ ФУНКЦИИ ISPLAYERINGAME
 
 
-  it("buy energy for tokens", async function() {
+//   it("buy energy for tokens", async function() {
 
 
 
-    const { lp, coll, lptoken,  acc1, acc2 } = await loadFixture(deploy);
-
-    
-    await coll.mint(10, {value: 10});
-
-    await lp.enterInGame([1,2,3,4]);
-
-
-
-
-  console.log("энергия до клейма энергии")
-  console.log( (await lp.players(acc1.address)).energyBalance);
-
-
-      // нужно будет 101000 токенов
-      await lptoken.mint(acc1.address, 102000);
-      expect(await lptoken.balanceOf(acc1.address)).to.equal(102000)
-
-      await lptoken.approve(lp.address, 2020);
-    await lp.buyEnergyForTokens(1010);
+//     const { lp, coll, lptoken,  acc1, acc2 } = await loadFixture(deploy);
 
     
-  console.log("энергия после клейма энергии")
-  console.log( (await lp.players(acc1.address)).energyBalance);
+//     await coll.mint(10, {value: 10});
+
+//     await lp.enterInGame([1,2,3,4]);
+
+
+
+
+
+
+
+
+
+
+//   console.log("энергия до клейма энергии")
+//   console.log( (await lp.players(acc1.address)).energyBalance);
+
+
+//       // нужно будет 101000 токенов
+//       await lptoken.mint(acc1.address, 102000);
+//       expect(await lptoken.balanceOf(acc1.address)).to.equal(102000)
+
+//       await lptoken.approve(lp.address, 2020);
+//     await lp.buyEnergyForTokens(1010);
+
+    
+//   console.log("энергия после клейма энергии")
+//   console.log( (await lp.players(acc1.address)).energyBalance);
 
 
 
@@ -67,33 +73,122 @@ describe("deploy contracts", function() {
 
   
 
-});
+// });
+
+// it('enter in game, leave game, enter in game', async () => {
+
+//   const { lp, coll, lptoken,  acc1, acc2 } = await loadFixture(deploy);
+
+//   await coll.mint(10, {value: 10});
+
+//   await lp.enterInGame([1,2,3,4]);
+
+//   await lp.leaveGame();
+
+//   await lp.enterInGame([1,2,3,4]);
+
+
+
+ 
+// });
+
+// it("test duels", async function() {
+
+
+
+//   const { lp, coll, lptoken,  acc1, acc2, acc3 } = await loadFixture(deploy);
+
+//   await lp.createNewDuelRoom();
+//   await lp.createNewDuelRoom();
+//   await lp.createNewDuelRoom();
+
+  
+
+  
+//   await coll.mint(10, {value: 10});
+//   await lp.enterInGame([1,2,3,4]);
+
+
+//   await coll.connect(acc2).mint(10, {value: 10});
+//   await lp.connect(acc2).enterInGame([11,12,13,14]);
+
+
+
+
+//       await lptoken.mint(acc1.address, 102000);
+//       await lptoken.approve(lp.address, 102000);
+
+
+//       await lptoken.mint(acc2.address, 102000);
+//       await lptoken.connect(acc2).approve(lp.address, 102000);
+
+
+//   await lp.enterInDuel();
+
+//   await lp.connect(acc2).enterInDuel();
+
+//   console.log(await lptoken.balanceOf(lp.address));
+
+
+
+
+//   console.log(await lptoken.balanceOf(acc1.address))
+//   console.log(await lptoken.balanceOf(acc2.address))
+
+
+
+
+//   await lp.doAttackInDuel(0);
+//   await lp.connect(acc2).doAttackInDuel(0);
+
+
+//   console.log(await lp.viewDuelInfo(0));
+
+//   console.log(await lptoken.balanceOf(acc1.address))
+//   console.log(await lptoken.balanceOf(acc2.address))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// });
+
+
 
 
 it("claim bonuses", async function() {
 
 
-
   const { lp, coll, lptoken,  acc1, acc2 } = await loadFixture(deploy);
-
   
   await coll.mint(10, {value: 10});
 
-  await lp.enterInGame([1,2,3,4]);
+  await lp.enterInGame([1,2,3,4,5,6,7,8,9,10] );
 
 
 
 
-console.log("энергия до клейма энергии")
-console.log( (await lp.players(acc1.address)).energyBalance);
+console.log("энергия до клейма энергии");
+
+console.log((await lp.players(acc1.address)).energyBalance);
 
 
     // нужно будет 101000 токенов
-    await lptoken.mint(acc1.address, 102000);
-    expect(await lptoken.balanceOf(acc1.address)).to.equal(102000)
+    await lptoken.mint(acc1.address, 10200000);
+    expect(await lptoken.balanceOf(acc1.address)).to.equal(10200000)
 
-    await lptoken.approve(lp.address, 100000);
-  await lp.buyEnergyForTokens(50000);
+    await lptoken.approve(lp.address, 10000000);
+  await lp.buyEnergyForTokens(5000000);
 
   
 console.log("энергия после клейма энергии")
@@ -102,31 +197,21 @@ console.log( (await lp.players(acc1.address)).energyBalance);
 
 await lp.fightWithBoss(1)
 
-
+await lp.fightWithBoss(2)
 
 await lp.fightWithBoss(3)
 
 await lp.fightWithBoss(4)
 
-
-
 console.log((await lp.players(acc1.address)).qtyBossDefeated)
 
-await lp.claimMysticEffect(2)
-await lp.claimMysticEffect(3)
-await lp.claimBonus(1)
-await lp.claimBonus(2)
-await lp.claimBonus(3)
+await lp.getFinalTreasures([1,2,3,4,5,6,7,8,9,10], 1230598);
 
-
-
-
-
-
-
-
-  
-
+// await lp.claimMysticEffect(2)
+// await lp.claimMysticEffect(3)
+// await lp.claimBonus(1)
+// await lp.claimBonus(2)
+// await lp.claimBonus(3)
 
 
 
